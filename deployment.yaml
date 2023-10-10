@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: todo-app
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: todo-app
+  template:
+    metadata:
+      labels:
+        app: todo-app
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchFields:
+                  - key: metadata.name
+                    operator: NotIn
+                    values:
+                    - node-2
+      containers:
+      - name: todo-service
+        image: registry.exmple.com/todo-service:e160a4bf
+        ports:
+        - containerPort: 5000
+        imagePullSecrets:
+        - name: registry-token
+        resources:
+          limits:
+            memory: "200Mi"
+          requests:
+            memory: "200Mi"
+        env:
+        - name: DB_HOST
+          value: "1.2.3.4:5432"
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 5000
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /live
+            port: 5000
+          initialDelaySeconds: 15
+          periodSeconds: 20
